@@ -39,6 +39,35 @@ function checkApiKey(req, res, next) {
   next();
 }
 
+// 共用：呼叫 vedic_api 取得命盤
+async function fetchVedicChart({ date, time, lat, lon }) {
+  if (!date || !time || lat == null || lon == null) {
+    throw new Error("Missing required birth fields");
+  }
+
+  const chartUrl =
+    `${VEDIC_API_BASE_URL}/api/vedic/chart-lite` +
+    `?date=${encodeURIComponent(date)}` +
+    `&time=${encodeURIComponent(time)}` +
+    `&lat=${encodeURIComponent(lat)}` +
+    `&lon=${encodeURIComponent(lon)}`;
+
+  const chartRes = await fetch(chartUrl);
+
+  if (!chartRes.ok) {
+    const text = await chartRes.text();
+    throw new Error(`Failed to fetch Vedic chart: ${text}`);
+  }
+
+  const chartData = await chartRes.json();
+
+  if (!chartData.ok) {
+    throw new Error("Vedic API returned error");
+  }
+
+  return chartData.chart;
+}
+
 // 健康檢查
 app.get("/", (req, res) => {
   res.json({
@@ -53,46 +82,8 @@ app.post("/api/jyoti/reading", checkApiKey, async (req, res) => {
   try {
     const { date, time, lat, lon } = req.body;
 
-    if (!date || !time || lat == null || lon == null) {
-      return res.status(400).json({
-        ok: false,
-        error: "Missing required fields",
-      });
-    }
+    const chart = await fetchVedicChart({ date, time, lat, lon });
 
-    // 呼叫 vedic_api
-    const chartUrl =
-      `${VEDIC_API_BASE_URL}/api/vedic/chart-lite` +
-      `?date=${encodeURIComponent(date)}` +
-      `&time=${encodeURIComponent(time)}` +
-      `&lat=${encodeURIComponent(lat)}` +
-      `&lon=${encodeURIComponent(lon)}`;
-
-    const chartRes = await fetch(chartUrl);
-
-    if (!chartRes.ok) {
-      const text = await chartRes.text();
-
-      return res.status(502).json({
-        ok: false,
-        error: "Failed to fetch Vedic chart",
-        detail: text,
-      });
-    }
-
-    const chartData = await chartRes.json();
-
-    if (!chartData.ok) {
-      return res.status(502).json({
-        ok: false,
-        error: "Vedic API returned error",
-        detail: chartData,
-      });
-    }
-
-    const chart = chartData.chart;
-
-    // GPT Prompt
     const prompt = `
 你是一位專業的印度占星師（Jyotish）。
 
@@ -144,7 +135,6 @@ app.post("/api/jyoti/reading", checkApiKey, async (req, res) => {
 ${JSON.stringify(chart, null, 2)}
 `;
 
-    // 呼叫 GPT
     const gptRes = await openai.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-5-mini",
       input: prompt,
@@ -162,6 +152,100 @@ ${JSON.stringify(chart, null, 2)}
     });
   } catch (error) {
     console.error("jyoti reading error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
+
+// 印度占星合盤解讀
+app.post("/api/jyoti/synastry", checkApiKey, async (req, res) => {
+  try {
+    const { personA, personB } = req.body;
+
+    if (!personA || !personB) {
+      return res.status(400).json({
+        ok: false,
+        error: "Missing personA or personB",
+      });
+    }
+
+    const chartA = await fetchVedicChart(personA);
+    const chartB = await fetchVedicChart(personB);
+
+    const prompt = `
+你是一位專業的印度占星合盤師（Jyotish Synastry）。
+
+請直接開始分析，不要寫：
+- 感謝提供資料
+- 以下是合盤分析
+- 我會用溫柔方式解讀
+- 我將協助你
+- 若你願意
+- 如果你想再問
+- 歡迎再詢問
+- 問句結尾
+
+請使用自然、成熟、專業的繁體中文。
+
+風格要求：
+- 像真正的印度占星師
+- 不要客服感
+- 不要 ChatGPT 感
+- 不要過度安撫
+- 不要心理諮商式開場
+- 不要解釋 AI 自己
+- 不要使用 emoji
+
+請直接切入兩人的關係重點。
+
+請包含：
+
+1. 兩人整體關係氣質
+2. 月亮相容性：情緒、安全感、相處節奏
+3. 金星與火星：吸引力、戀愛模式、親密張力
+4. 第七宮：婚姻感、長期關係、伴侶期待
+5. Rahu / Ketu：業力感、命運感、容易執著或放不下的地方
+6. 四項分數：
+   - 愛情相容度：0-100
+   - 溝通理解度：0-100
+   - 吸引力：0-100
+   - 業力連結：0-100
+7. 實際相處建議
+
+分數請用清楚條列方式呈現。
+建議要成熟、實際、有方向感。
+不要保證一定會在一起，也不要說一定不適合。
+
+最後直接結束。
+
+A 的星盤 JSON：
+${JSON.stringify(chartA, null, 2)}
+
+B 的星盤 JSON：
+${JSON.stringify(chartB, null, 2)}
+`;
+
+    const gptRes = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
+    });
+
+    const text =
+      gptRes.output_text ||
+      gptRes.output?.[0]?.content?.[0]?.text ||
+      "合盤解析失敗";
+
+    return res.json({
+      ok: true,
+      personA: chartA,
+      personB: chartB,
+      reading: text,
+    });
+  } catch (error) {
+    console.error("jyoti synastry error:", error);
 
     return res.status(500).json({
       ok: false,
