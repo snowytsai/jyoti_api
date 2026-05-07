@@ -1,294 +1,143 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
 
 dotenv.config();
 
 const app = express();
-app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json());
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const PORT = process.env.PORT || 3000;
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ⭐ App API Key
-const APP_API_KEY = process.env.APP_API_KEY;
+// 你的 vedic_api Render URL
+const VEDIC_API_BASE_URL =
+  process.env.VEDIC_API_BASE_URL || "https://vedic-api-2r5k.onrender.com";
 
-const limiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20
-});
-
-app.use("/tarot", limiter);
-
-// ⭐ API Key 檢查
+// API Key 保護 jyoti_api
 function checkApiKey(req, res, next) {
-  const key = req.headers["x-api-key"];
+  const apiKey = req.headers["x-api-key"];
 
-  if (!key || key !== APP_API_KEY) {
-    return res.status(403).json({
-      error: "API key invalid"
+  if (!process.env.APP_API_KEY) {
+    return next();
+  }
+
+  if (apiKey !== process.env.APP_API_KEY) {
+    return res.status(401).json({
+      ok: false,
+      error: "Unauthorized",
     });
   }
 
   next();
 }
 
-app.use("/tarot", checkApiKey);
+// 健康檢查
+app.get("/", (req, res) => {
+  res.json({
+    ok: true,
+    service: "jyoti_api",
+    message: "EZJyoti GPT API is running",
+  });
+});
 
-// ⭐ 統一取文字
-function extractText(response) {
+// 星盤 + GPT 解讀
+app.post("/api/jyoti/reading", checkApiKey, async (req, res) => {
   try {
-    if (response?.output_text) {
-      return response.output_text.trim();
-    }
+    const { date, time, lat, lon, question } = req.body;
 
-    const text = response?.output?.[0]?.content?.[0]?.text;
-    if (typeof text === "string" && text.trim()) {
-      return text.trim();
-    }
-
-    return "";
-  } catch {
-    return "";
-  }
-}
-
-// ⭐ 確保布林值
-function normalizeBoolean(value) {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "string") {
-    return value.toLowerCase() === "true";
-  }
-  return false;
-}
-
-// ⭐ 統一建立 GPT input
-function buildUserInput(prompt) {
-  return [
-    {
-      role: "user",
-      content: [
-        {
-          type: "input_text",
-          text: prompt
-        }
-      ]
-    }
-  ];
-}
-
-// =========================
-// Tarot routes
-// =========================
-
-app.post("/tarot/single", async (req, res) => {
-  try {
-    console.log("single body =", req.body);
-
-    const { question, category, cardName, isReversed } = req.body;
-
-    if (!question || !cardName) {
+    if (!date || !time || lat == null || lon == null) {
       return res.status(400).json({
-        error: "缺少 question 或 cardName",
-        body: req.body
+        ok: false,
+        error: "Missing required fields: date, time, lat, lon",
       });
     }
 
-    const prompt = `
-你是一位溫和理性的塔羅解牌者。
-請用繁體中文解讀以下牌卡。
+    // 1. 呼叫 vedic_api
+    const chartUrl =
+      `${VEDIC_API_BASE_URL}/api/vedic/chart-lite` +
+      `?date=${encodeURIComponent(date)}` +
+      `&time=${encodeURIComponent(time)}` +
+      `&lat=${encodeURIComponent(lat)}` +
+      `&lon=${encodeURIComponent(lon)}`;
 
-問題：${question}
-分類：${category || "未分類"}
-牌：${cardName}
-牌位：${normalizeBoolean(isReversed) ? "逆位" : "正位"}
+    const chartRes = await fetch(chartUrl);
 
-請提供：
-1. 此刻狀態
-2. 可能發展
-3. 建議
-
-控制在200字內。
-`.trim();
-
-    const response = await client.responses.create({
-      model: "gpt-5-mini",
-      input: buildUserInput(prompt),
-      max_output_tokens: 750
-    });
-
-    const text = extractText(response);
-
-    return res.json({
-      reading: text || "暫時無法取得解牌內容"
-    });
-  } catch (error) {
-    console.error("single tarot error =", error);
-    return res.status(500).json({
-      error: "AI解牌失敗"
-    });
-  }
-});
-
-app.post("/tarot/three", async (req, res) => {
-  try {
-    console.log("three body =", req.body);
-
-    const { question, category, cards } = req.body;
-
-    if (!question || !Array.isArray(cards) || cards.length === 0) {
-      return res.status(400).json({
-        error: "缺少 question 或 cards",
-        body: req.body
+    if (!chartRes.ok) {
+      const text = await chartRes.text();
+      return res.status(502).json({
+        ok: false,
+        error: "Failed to fetch Vedic chart",
+        detail: text,
       });
     }
 
-    const cardsText = cards
-      .map((c, index) => {
-        const label = c?.label || `第${index + 1}張`;
-        const name = c?.name || c?.cardName || "";
-        const reversed = normalizeBoolean(c?.isReversed) ? "逆位" : "正位";
-        return `${label}：${name}（${reversed}）`;
-      })
-      .join("\n");
+    const chartData = await chartRes.json();
 
-    const prompt = `
-你是一位溫和理性的塔羅解牌者。
-請用繁體中文解讀以下三張塔羅牌。
-
-問題：${question}
-分類：${category || "未分類"}
-
-${cardsText}
-
-請提供：
-1. 整體狀態
-2. 發展方向
-3. 建議
-
-控制在300字內。
-`.trim();
-
-    const response = await client.responses.create({
-      model: "gpt-5-mini",
-      input: buildUserInput(prompt),
-      max_output_tokens: 1000
-    });
-
-    const text = extractText(response);
-
-    return res.json({
-      reading: text || "暫時無法取得解牌內容"
-    });
-  } catch (error) {
-    console.error("three tarot error =", error);
-    return res.status(500).json({
-      error: "AI解牌失敗"
-    });
-  }
-});
-
-// ⭐ 星象（從 cosmos API 來）
-app.post("/tarot/daily-astrology", async (req, res) => {
-  try {
-    console.log("daily astrology body =", req.body);
-
-    const { astrologyText } = req.body;
-
-    return res.json({
-      astrology: astrologyText || ""
-    });
-  } catch (error) {
-    console.error("daily astrology error =", error);
-    return res.status(500).json({
-      error: "daily astrology failed"
-    });
-  }
-});
-
-// ⭐ 星象 + 塔羅完整融合解析
-app.post("/tarot/daily-combined", async (req, res) => {
-  try {
-    console.log("daily combined body =", req.body);
-
-    const {
-      cardName,
-      isReversed,
-      astrologyText,
-      keywords,
-      dailyHint
-    } = req.body;
-
-    if (!cardName) {
-      return res.status(400).json({
-        error: "缺少 cardName",
-        body: req.body
+    if (!chartData.ok) {
+      return res.status(502).json({
+        ok: false,
+        error: "Vedic API returned error",
+        detail: chartData,
       });
     }
 
-    const orientation = normalizeBoolean(isReversed) ? "逆位" : "正位";
+    // 2. 整理給 GPT 的資料
+    const chart = chartData.chart;
 
     const prompt = `
-你是一位溫和、清楚、自然的塔羅解讀者。
-請根據以下資料，產出「星象 + 牌卡」融合後的完整建議。
+你是一位專業但語氣溫柔的印度占星師，請根據以下印度占星星盤資料，使用繁體中文解讀。
 
-【今日星象】
-${astrologyText || "今日星象資料暫時無法取得"}
+請用一般人看得懂的方式，不要太學術。
 
-【塔羅牌】
-${cardName}（${orientation}）
+請包含以下段落：
+1. 整體命盤氣質
+2. 上升星座與人生主軸
+3. 太陽、月亮與內在性格
+4. 行星落宮重點
+5. 目前生命課題
+6. 給使用者的建議
 
-【牌卡關鍵字】
-${Array.isArray(keywords) ? keywords.join("、") : ""}
+如果使用者有問題，也請一起回答。
 
-【今日提醒】
-${dailyHint || ""}
+使用者問題：
+${question || "無特定問題，請做整體命盤解析"}
 
-請用繁體中文輸出，內容請自然分成幾段，包含：
+星盤資料 JSON：
+${JSON.stringify(chart, null, 2)}
+`;
 
-1. 今日整體能量
-2. 星象與牌卡的交互影響
-3. 今日最重要的提醒
-4. 實際可行的行動建議
-
-要求：
-- 不要條列數字
-- 不要過度玄學
-- 語氣自然，像真的在對人說話
-- 不要重複貼原始星象資料
-- 不要只是改寫關鍵字
-- 要真的把星象與牌義融合
-- 約 220～320 字
-`.trim();
-
-    const response = await client.responses.create({
-      model: "gpt-5-mini",
-      input: buildUserInput(prompt),
-      max_output_tokens: 1800
+    // 3. 呼叫 GPT
+    const gptRes = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
     });
 
-    const text = extractText(response);
+    const text =
+      gptRes.output_text ||
+      gptRes.output?.[0]?.content?.[0]?.text ||
+      "解析失敗，沒有取得文字內容。";
 
     return res.json({
-      reading: text || "暫時無法取得完整建議"
+      ok: true,
+      chart,
+      reading: text,
     });
   } catch (error) {
-    console.error("daily combined error =", error);
+    console.error("jyoti reading error:", error);
+
     return res.status(500).json({
-      error: "融合解讀失敗"
+      ok: false,
+      error: error.message || "Internal server error",
     });
   }
 });
 
-app.get("/health", (req, res) => {
-  res.json({ ok: true });
-});
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Tarot API running");
+app.listen(PORT, () => {
+  console.log(`jyoti_api running on port ${PORT}`);
 });
