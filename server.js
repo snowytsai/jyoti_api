@@ -163,14 +163,30 @@ ${JSON.stringify(chart, null, 2)}
 // 印度占星合盤解讀
 app.post("/api/jyoti/synastry", checkApiKey, async (req, res) => {
   try {
-    const { relationshipType, relationshipLabel, personA, personB, aspects } = req.body;
-    
+    const {
+      relationshipType,
+      relationshipLabel,
+      personA,
+      personB,
+      aspects,
+    } = req.body;
+
     if (!personA || !personB) {
       return res.status(400).json({
         ok: false,
         error: "Missing personA or personB",
       });
     }
+
+    const personAName =
+      typeof personA.name === "string" && personA.name.trim()
+        ? personA.name.trim()
+        : "第一人";
+
+    const personBName =
+      typeof personB.name === "string" && personB.name.trim()
+        ? personB.name.trim()
+        : "第二人";
 
     const chartA = await fetchVedicChart(personA);
     const chartB = await fetchVedicChart(personB);
@@ -200,6 +216,21 @@ app.post("/api/jyoti/synastry", checkApiKey, async (req, res) => {
 - 不要使用 emoji
 
 請直接切入兩人的關係重點。
+
+兩人的名字：
+- ${personAName}
+- ${personBName}
+
+分析時請直接使用名字稱呼。
+不要使用：
+- A
+- B
+- A盤
+- B盤
+- 第一人
+- 第二人
+- 此人
+- 對方
 
 請依照關係類型調整解讀內容：
 
@@ -235,10 +266,10 @@ ${relationshipLabel || relationshipType || "未指定"}
 兩人的主要合盤相位：
 ${JSON.stringify(aspects || [], null, 2)}
 
-A 的星盤 JSON：
+${personAName} 的星盤 JSON：
 ${JSON.stringify(chartA, null, 2)}
 
-B 的星盤 JSON：
+${personBName} 的星盤 JSON：
 ${JSON.stringify(chartB, null, 2)}
 `;
 
