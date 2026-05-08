@@ -163,8 +163,8 @@ ${JSON.stringify(chart, null, 2)}
 // 印度占星合盤解讀
 app.post("/api/jyoti/synastry", checkApiKey, async (req, res) => {
   try {
-    const { personA, personB } = req.body;
-
+    const { relationshipType, relationshipLabel, personA, personB, aspects } = req.body;
+    
     if (!personA || !personB) {
       return res.status(400).json({
         ok: false,
@@ -220,6 +220,12 @@ app.post("/api/jyoti/synastry", checkApiKey, async (req, res) => {
 不要保證一定會在一起，也不要說一定不適合。
 
 最後直接結束。
+
+關係類型：
+${relationshipLabel || relationshipType || "未指定"}
+
+兩人的主要合盤相位：
+${JSON.stringify(aspects || [], null, 2)}
 
 A 的星盤 JSON：
 ${JSON.stringify(chartA, null, 2)}
