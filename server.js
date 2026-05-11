@@ -68,6 +68,108 @@ async function fetchVedicChart({ date, time, lat, lon }) {
   return chartData.chart;
 }
 
+// 共用：安全取得行星資料
+function findPlanet(chart, keyOrName) {
+  if (!chart || !Array.isArray(chart.planets)) return null;
+
+  const target = String(keyOrName).toLowerCase();
+
+  return (
+    chart.planets.find((p) => String(p.key || "").toLowerCase() === target) ||
+    chart.planets.find((p) => String(p.name || "").toLowerCase() === target) ||
+    null
+  );
+}
+
+// 共用：取得月亮 Nakshatra
+function extractMoonNakshatra(chart) {
+  const moon = findPlanet(chart, "moon") || findPlanet(chart, "月亮");
+
+  if (!moon) {
+    return {
+      name: "未知",
+      pada: null,
+      lord: null,
+      raw: null,
+    };
+  }
+
+  const nakshatra =
+    moon.nakshatra ||
+    moon.nakshatraInfo ||
+    moon.sidereal?.nakshatra ||
+    moon.vedic?.nakshatra ||
+    null;
+
+  if (typeof nakshatra === "string") {
+    return {
+      name: nakshatra,
+      pada: moon.pada || moon.nakshatraPada || moon.sidereal?.pada || null,
+      lord: moon.nakshatraLord || moon.lord || null,
+      raw: moon,
+    };
+  }
+
+  return {
+    name:
+      nakshatra?.name ||
+      nakshatra?.nakshatra ||
+      moon.nakshatraName ||
+      moon.nakshatra ||
+      "未知",
+    pada:
+      nakshatra?.pada ||
+      moon.pada ||
+      moon.nakshatraPada ||
+      moon.sidereal?.pada ||
+      null,
+    lord:
+      nakshatra?.lord ||
+      moon.nakshatraLord ||
+      moon.lord ||
+      null,
+    raw: moon,
+  };
+}
+
+// 簡單分數：先給 GPT 參考用，不當成絕對命運判斷
+function calculateBasicNakshatraScore(nakA, nakB) {
+  let score = 70;
+
+  if (!nakA?.name || !nakB?.name || nakA.name === "未知" || nakB.name === "未知") {
+    return {
+      score: 60,
+      level: "資料不足",
+    };
+  }
+
+  if (nakA.name === nakB.name) {
+    score += 8;
+  }
+
+  if (nakA.lord && nakB.lord && nakA.lord === nakB.lord) {
+    score += 6;
+  }
+
+  if (nakA.pada && nakB.pada && nakA.pada === nakB.pada) {
+    score += 3;
+  }
+
+  if (score >= 85) {
+    return { score, level: "高度契合" };
+  }
+
+  if (score >= 75) {
+    return { score, level: "良好" };
+  }
+
+  if (score >= 65) {
+    return { score, level: "中等偏穩" };
+  }
+
+  return { score, level: "需要磨合" };
+}
+
 // 健康檢查
 app.get("/", (req, res) => {
   res.json({
@@ -291,6 +393,166 @@ ${JSON.stringify(chartB, null, 2)}
     });
   } catch (error) {
     console.error("jyoti synastry error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
+
+// 伴侶 Nakshatra 配對解讀
+app.post("/api/jyoti/nakshatra-match", checkApiKey, async (req, res) => {
+  try {
+    const {
+      relationshipType,
+      relationshipLabel,
+      personA,
+      personB,
+    } = req.body;
+
+    if (!personA || !personB) {
+      return res.status(400).json({
+        ok: false,
+        error: "Missing personA or personB",
+      });
+    }
+
+    const personAName =
+      typeof personA.name === "string" && personA.name.trim()
+        ? personA.name.trim()
+        : "第一人";
+
+    const personBName =
+      typeof personB.name === "string" && personB.name.trim()
+        ? personB.name.trim()
+        : "第二人";
+
+    const chartA = await fetchVedicChart(personA);
+    const chartB = await fetchVedicChart(personB);
+
+    const moonNakshatraA = extractMoonNakshatra(chartA);
+    const moonNakshatraB = extractMoonNakshatra(chartB);
+
+    const basicMatch = calculateBasicNakshatraScore(
+      moonNakshatraA,
+      moonNakshatraB
+    );
+
+    const prompt = `
+你是一位專業的印度占星師，擅長用 Moon Nakshatra 分析伴侶關係。
+
+請直接開始分析，不要寫：
+- 感謝提供資料
+- 以下是分析
+- 我會用溫柔方式解讀
+- 我將協助你
+- 若你願意
+- 如果你想再問
+- 歡迎再詢問
+- 問句結尾
+
+請使用自然、成熟、專業的繁體中文。
+
+風格要求：
+- 像真正的印度占星師
+- 不要客服感
+- 不要 ChatGPT 感
+- 不要過度安撫
+- 不要心理諮商式開場
+- 不要解釋 AI 自己
+- 不要使用 emoji
+
+這是一個「月亮星宿 Nakshatra 伴侶配對」功能。
+請以兩人的 Moon Nakshatra 為核心，分析情緒節奏、安全感、吸引力、長期相處與關係課題。
+
+兩人的名字：
+- ${personAName}
+- ${personBName}
+
+分析時請直接使用名字稱呼。
+不要使用：
+- A
+- B
+- A盤
+- B盤
+- 第一人
+- 第二人
+- 此人
+- 對方
+
+關係類型：
+${relationshipLabel || relationshipType || "伴侶"}
+
+月亮 Nakshatra 資料：
+
+${personAName}：
+${JSON.stringify(moonNakshatraA, null, 2)}
+
+${personBName}：
+${JSON.stringify(moonNakshatraB, null, 2)}
+
+系統初步參考分數：
+${JSON.stringify(basicMatch, null, 2)}
+
+請輸出以下內容：
+
+1. 月亮星宿配對總評
+2. 情緒相容性
+3. 安全感與依附模式
+4. 吸引力與親密節奏
+5. 長期相處優勢
+6. 容易摩擦的地方
+7. 四項分數：
+   - 情緒契合度：0-100
+   - 安全感穩定度：0-100
+   - 吸引力：0-100
+   - 長期相處潛力：0-100
+8. 實際相處建議
+
+分數請用清楚條列方式呈現。
+可以參考系統初步分數，但請依照兩人的星宿特質做合理調整。
+不要保證一定會在一起，也不要說一定不適合。
+不要恐嚇式斷言。
+最後直接結束。
+
+完整星盤資料也提供給你輔助判斷，但請不要寫得像完整合盤，重點放在 Moon Nakshatra。
+
+${personAName} 的星盤 JSON：
+${JSON.stringify(chartA, null, 2)}
+
+${personBName} 的星盤 JSON：
+${JSON.stringify(chartB, null, 2)}
+`;
+
+    const gptRes = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
+    });
+
+    const text =
+      gptRes.output_text ||
+      gptRes.output?.[0]?.content?.[0]?.text ||
+      "Nakshatra 配對解析失敗";
+
+    return res.json({
+      ok: true,
+      matchType: "moon_nakshatra_partner_match",
+      personA: {
+        name: personAName,
+        chart: chartA,
+        moonNakshatra: moonNakshatraA,
+      },
+      personB: {
+        name: personBName,
+        chart: chartB,
+        moonNakshatra: moonNakshatraB,
+      },
+      basicMatch,
+      reading: text,
+    });
+  } catch (error) {
+    console.error("jyoti nakshatra match error:", error);
 
     return res.status(500).json({
       ok: false,
