@@ -70,64 +70,64 @@ async function fetchVedicChart({ date, time, lat, lon }) {
 
 // 共用：安全取得行星資料
 function findPlanet(chart, keyOrName) {
-  if (!chart || !Array.isArray(chart.planets)) return null;
-
   const target = String(keyOrName).toLowerCase();
 
-  return (
-    chart.planets.find((p) => String(p.key || "").toLowerCase() === target) ||
-    chart.planets.find((p) => String(p.name || "").toLowerCase() === target) ||
-    null
-  );
+  if (chart?.main_planets && typeof chart.main_planets === "object") {
+    const planetsObject = chart.main_planets;
+
+    if (planetsObject[target]) {
+      return planetsObject[target];
+    }
+
+    const found = Object.values(planetsObject).find((p) => {
+      return (
+        String(p?.key || "").toLowerCase() === target ||
+        String(p?.name || "").toLowerCase() === target
+      );
+    });
+
+    if (found) return found;
+  }
+
+  if (Array.isArray(chart?.planets)) {
+    return (
+      chart.planets.find((p) => String(p.key || "").toLowerCase() === target) ||
+      chart.planets.find((p) => String(p.name || "").toLowerCase() === target) ||
+      null
+    );
+  }
+
+  return null;
 }
 
 // 共用：取得月亮 Nakshatra
 function extractMoonNakshatra(chart) {
-  const moon = findPlanet(chart, "moon") || findPlanet(chart, "月亮");
+  const moon =
+    chart?.main_planets?.moon ||
+    findPlanet(chart, "moon") ||
+    findPlanet(chart, "月亮");
 
   if (!moon) {
     return {
       name: "未知",
       pada: null,
       lord: null,
+      sign: null,
+      degree: null,
+      house: null,
+      navamsa: null,
       raw: null,
     };
   }
 
-  const nakshatra =
-    moon.nakshatra ||
-    moon.nakshatraInfo ||
-    moon.sidereal?.nakshatra ||
-    moon.vedic?.nakshatra ||
-    null;
-
-  if (typeof nakshatra === "string") {
-    return {
-      name: nakshatra,
-      pada: moon.pada || moon.nakshatraPada || moon.sidereal?.pada || null,
-      lord: moon.nakshatraLord || moon.lord || null,
-      raw: moon,
-    };
-  }
-
   return {
-    name:
-      nakshatra?.name ||
-      nakshatra?.nakshatra ||
-      moon.nakshatraName ||
-      moon.nakshatra ||
-      "未知",
-    pada:
-      nakshatra?.pada ||
-      moon.pada ||
-      moon.nakshatraPada ||
-      moon.sidereal?.pada ||
-      null,
-    lord:
-      nakshatra?.lord ||
-      moon.nakshatraLord ||
-      moon.lord ||
-      null,
+    name: moon.nakshatra || moon.nakshatraName || "未知",
+    pada: moon.pada || moon.nakshatraPada || null,
+    lord: moon.nakshatraLord || moon.lord || null,
+    sign: moon.sign || null,
+    degree: moon.degree ?? null,
+    house: moon.house ?? null,
+    navamsa: moon.navamsa || null,
     raw: moon,
   };
 }
@@ -154,6 +154,8 @@ function calculateBasicNakshatraScore(nakA, nakB) {
   if (nakA.pada && nakB.pada && nakA.pada === nakB.pada) {
     score += 3;
   }
+
+  if (score > 100) score = 100;
 
   if (score >= 85) {
     return { score, level: "高度契合" };
