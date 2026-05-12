@@ -563,6 +563,65 @@ ${JSON.stringify(chartB, null, 2)}
   }
 });
 
+app.post("/api/jyoti/transit-reading", checkApiKey, async (req, res) => {
+  try {
+    const { natal, transit } = req.body;
+
+    if (!natal || !transit) {
+      return res.status(400).json({
+        ok: false,
+        error: "缺少 natal 或 transit 資料",
+      });
+    }
+
+    const prompt = `
+你是一位專業、溫柔但直接的印度占星師。
+請根據以下本命盤與今日流年資料，寫一份繁體中文流年解讀。
+
+要求：
+1. 不要開頭說「謝謝你提供資料」
+2. 不要用太玄的語氣
+3. 語氣像 App 裡的專屬占星分析
+4. 分成以下段落：
+- 今日流年主題
+- 事業與金錢
+- 感情與人際
+- 情緒與內在狀態
+- 今日建議
+5. 重點分析木星、土星、Rahu、Ketu 的宮位
+6. 內容約 600 字以內
+7. 不要結尾問問題
+
+本命盤：
+${JSON.stringify(natal, null, 2)}
+
+今日流年：
+${JSON.stringify(transit, null, 2)}
+`;
+
+    const completion = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
+    });
+
+    const reading =
+      completion.output_text ||
+      completion.output?.[0]?.content?.[0]?.text ||
+      "沒有取得流年解讀內容";
+
+    res.json({
+      ok: true,
+      reading,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      ok: false,
+      error: "transit-reading failed",
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`jyoti_api running on port ${PORT}`);
 });
