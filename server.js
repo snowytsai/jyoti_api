@@ -622,6 +622,106 @@ ${JSON.stringify(transit, null, 2)}
   }
 });
 
+// 年度流年 AI 解讀
+app.post("/api/jyoti/yearly-reading", checkApiKey, async (req, res) => {
+  try {
+    const { natal, yearlyForecast } = req.body;
+
+    if (!natal || !yearlyForecast) {
+      return res.status(400).json({
+        ok: false,
+        error: "缺少 natal 或 yearlyForecast 資料",
+      });
+    }
+
+    const prompt = `
+你是一位專業的印度占星師（Jyotish），擅長年度流年、大運、木星土星行運與 Rahu/Ketu 軸線分析。
+
+請根據「本命盤」與「年度流年資料」，寫一份繁體中文年度流年解讀。
+
+請直接開始解讀，不要寫：
+- 感謝提供資料
+- 以下是分析
+- 我會幫你分析
+- 如果你願意
+- 歡迎再詢問
+- 問句結尾
+
+風格要求：
+- 像真正 App 裡的個人化年度運勢
+- 成熟、清楚、實用
+- 不要太玄
+- 不要客服感
+- 不要 ChatGPT 感
+- 不要使用 emoji
+- 不要恐嚇式斷言
+
+請包含以下段落：
+
+1. 今年整體主題
+   - 根據本命盤、大運與年度行運，說明今年主要人生課題。
+
+2. 事業與金錢
+   - 分析今年適合推進、轉型、穩定累積或需要保守的地方。
+
+3. 感情與人際
+   - 分析關係、人際、合作、伴侶互動上的年度傾向。
+
+4. 情緒與內在狀態
+   - 分析今年壓力、焦慮、內在轉變、安全感與精神狀態。
+
+5. 重要月份提醒
+   - 請依照 1～12 月資料，挑出比較明顯的月份。
+   - 請用條列方式，例如：
+     - 3月：……
+     - 6月：……
+     - 10月：……
+
+6. Jupiter / Saturn / Rahu / Ketu 重點
+   - 木星代表成長與機會
+   - 土星代表壓力、責任與成熟
+   - Rahu/Ketu 代表執著、轉折與放下
+   - 請結合每月流年資料分析。
+
+7. 今年建議
+   - 給出實際、可執行的生活建議。
+   - 不要空泛。
+
+字數約 900～1300 字。
+最後直接結束，不要問問題。
+
+本命盤 JSON：
+${JSON.stringify(natal, null, 2)}
+
+年度流年 JSON：
+${JSON.stringify(yearlyForecast, null, 2)}
+`;
+
+    const gptRes = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
+    });
+
+    const reading =
+      gptRes.output_text ||
+      gptRes.output?.[0]?.content?.[0]?.text ||
+      "沒有取得年度流年解讀內容";
+
+    return res.json({
+      ok: true,
+      reading,
+    });
+  } catch (error) {
+    console.error("jyoti yearly-reading error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "yearly-reading failed",
+    });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`jyoti_api running on port ${PORT}`);
 });
