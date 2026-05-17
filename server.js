@@ -939,6 +939,68 @@ ${JSON.stringify(tenYearForecast, null, 2)}
   }
 });
 
+// 本週運勢 AI 解讀
+app.post("/api/jyoti/weekly-reading", checkApiKey, async (req, res) => {
+  try {
+    const { natal, weeklyFortune } = req.body;
+
+    if (!natal || !weeklyFortune) {
+      return res.status(400).json({
+        ok: false,
+        error: "缺少 natal 或 weeklyFortune 資料",
+      });
+    }
+
+    const prompt = `
+你是一位專業、溫柔但直接的印度占星師。
+請根據以下本命盤與本週 7 天行運資料，寫一份繁體中文本週運勢解讀。
+
+請直接開始解讀，不要寫感謝提供資料、以下是分析、歡迎再詢問，也不要用問句結尾。
+
+請包含：
+1. 本週整體主題
+2. 工作與金錢
+3. 感情與人際
+4. 情緒與內在狀態
+5. 本週每日提醒
+6. 本週建議
+
+重點分析木星、土星、Rahu、Ketu 的宮位變化。
+語氣要像 App 裡的專屬占星分析，不要太玄，不要客服感，不要使用 emoji。
+內容約 800～1200 字。
+
+本命盤 JSON：
+${JSON.stringify(natal, null, 2)}
+
+本週行運 JSON：
+${JSON.stringify(weeklyFortune, null, 2)}
+`;
+
+    const gptRes = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
+    });
+
+    const reading =
+      gptRes.output_text ||
+      gptRes.output?.[0]?.content?.[0]?.text ||
+      "沒有取得本週運勢解讀內容";
+
+    return res.json({
+      ok: true,
+      reading,
+    });
+  } catch (error) {
+    console.error("jyoti weekly-reading error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "weekly-reading failed",
+    });
+  }
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`jyoti_api running on port ${PORT}`);
