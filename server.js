@@ -722,6 +722,115 @@ ${JSON.stringify(yearlyForecast, null, 2)}
 });
 
 
+// 三年流年 AI 解讀
+app.post("/api/jyoti/three-year-reading", checkApiKey, async (req, res) => {
+  try {
+    const { natal, threeYearForecast } = req.body;
+
+    if (!natal || !threeYearForecast) {
+      return res.status(400).json({
+        ok: false,
+        error: "缺少 natal 或 threeYearForecast 資料",
+      });
+    }
+
+    const prompt = `
+你是一位專業的印度占星師（Jyotish），擅長三年流年、大運、木星土星行運與 Rahu/Ketu 軸線分析。
+
+請根據「本命盤」與「三年流年資料」，寫一份繁體中文三年流年解讀。
+
+請直接開始解讀，不要寫：
+- 感謝提供資料
+- 以下是分析
+- 我會幫你分析
+- 如果你願意
+- 歡迎再詢問
+- 問句結尾
+
+風格要求：
+- 像真正 App 裡的個人化三年運勢
+- 成熟、清楚、實用
+- 不要太玄
+- 不要客服感
+- 不要 ChatGPT 感
+- 不要使用 emoji
+- 不要恐嚇式斷言
+
+請包含以下段落：
+
+1. 三年整體主題
+   - 根據本命盤、大運與三年行運，說明接下來三年的主要人生課題。
+
+2. 第一階段
+   - 分析第一年的主軸、壓力、機會與需要穩住的地方。
+
+3. 第二階段
+   - 分析第二年的轉折、成長、關係或事業變化。
+
+4. 第三階段
+   - 分析第三年的收斂、成熟、成果與下一階段準備。
+
+5. 事業與金錢
+   - 分析三年內適合推進、轉型、累積或保守的地方。
+
+6. 感情與人際
+   - 分析關係、人際、合作、伴侶互動上的三年傾向。
+
+7. 情緒與內在狀態
+   - 分析三年內壓力、安全感、內在轉變與精神狀態。
+
+8. 重要時間點提醒
+   - 請依照資料挑出比較明顯的時間點。
+   - 請用條列方式，例如：
+     - 2026 上半年：……
+     - 2027 下半年：……
+     - 2028：……
+
+9. Jupiter / Saturn / Rahu / Ketu 重點
+   - 木星代表成長與機會
+   - 土星代表壓力、責任與成熟
+   - Rahu/Ketu 代表執著、轉折與放下
+   - 請結合三年流年資料分析。
+
+10. 三年建議
+   - 給出實際、可執行的生活建議。
+   - 不要空泛。
+
+字數約 1100～1600 字。
+最後直接結束，不要問問題。
+
+本命盤 JSON：
+${JSON.stringify(natal, null, 2)}
+
+三年流年 JSON：
+${JSON.stringify(threeYearForecast, null, 2)}
+`;
+
+    const gptRes = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
+    });
+
+    const reading =
+      gptRes.output_text ||
+      gptRes.output?.[0]?.content?.[0]?.text ||
+      "沒有取得三年流年解讀內容";
+
+    return res.json({
+      ok: true,
+      reading,
+    });
+  } catch (error) {
+    console.error("jyoti three-year-reading error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "three-year-reading failed",
+    });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`jyoti_api running on port ${PORT}`);
 });
