@@ -577,7 +577,7 @@ app.post("/api/jyoti/transit-reading", checkApiKey, async (req, res) => {
     const prompt = `
 你是一位專業的印度占星師（Jyotish）。
 
-請根據本命盤與 transit planets，
+請根據本命盤與今日行星運勢，
 用繁體中文寫出自然、成熟、專業的今日運勢分析。
 
 請直接開始解讀，不要寫：
