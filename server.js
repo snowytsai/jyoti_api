@@ -677,7 +677,7 @@ const prompt = `
 本命盤：
 ${JSON.stringify(natal, null, 2)}
 
-今日流年：
+年度流年：
 ${JSON.stringify(transit, null, 2)}
 `;
 
@@ -984,14 +984,23 @@ app.post("/api/jyoti/ten-year-reading", checkApiKey, async (req, res) => {
      - 2027：……
      - 2030：……
      - 2033：……
+9. 太陽 / 月亮 / 水星 / 金星 / 火星
+   會作為事件觸發點與人生階段變化催化劑，
+   請分析它們如何影響：
+   - 人際
+   - 關係
+   - 情緒
+   - 壓力
+   - 行動力
+   - 人生方向
 
-9. Jupiter / Saturn / Rahu / Ketu 重點
+10. Jupiter / Saturn / Rahu / Ketu 重點
    - 木星代表成長與機會
    - 土星代表責任與成熟
    - Rahu/Ketu 代表人生轉向與執著
    - 請結合十年資料分析。
 
-10. 十年建議
+11. 十年建議
    - 給出成熟、實際、可執行的人生建議。
    - 不要空泛。
 
