@@ -575,11 +575,10 @@ app.post("/api/jyoti/transit-reading", checkApiKey, async (req, res) => {
     }
 
     const prompt = `
-const prompt = `
 你是一位專業的印度占星師（Jyotish）。
 
 請根據本命盤與 transit planets，
-用繁體中文寫出自然、成熟、專業的流年分析。
+用繁體中文寫出自然、成熟、專業的今日運勢分析。
 
 請直接開始解讀，不要寫：
 - 感謝提供資料
@@ -659,7 +658,7 @@ const prompt = `
 
 請包含：
 
-1. 今日流年主題
+1. 今日運勢主題
 2. 工作與金錢
 3. 感情與人際
 4. 情緒與內在狀態
@@ -672,12 +671,15 @@ const prompt = `
 - 哪些地方需要注意
 - 可以怎麼調整
 
+請不要寫得像技術報告，
+而是像高級占星 App 的個人化每日運勢。
+
 內容約 700 字內。
 
 本命盤：
 ${JSON.stringify(natal, null, 2)}
 
-年度流年：
+今日運勢資料：
 ${JSON.stringify(transit, null, 2)}
 `;
 
