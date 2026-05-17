@@ -831,6 +831,115 @@ ${JSON.stringify(threeYearForecast, null, 2)}
 });
 
 
+// 十年流年 AI 解讀
+app.post("/api/jyoti/ten-year-reading", checkApiKey, async (req, res) => {
+  try {
+    const { natal, tenYearForecast } = req.body;
+
+    if (!natal || !tenYearForecast) {
+      return res.status(400).json({
+        ok: false,
+        error: "缺少 natal 或 tenYearForecast 資料",
+      });
+    }
+
+    const prompt = `
+你是一位專業的印度占星師（Jyotish），擅長長期人生週期、大運、木星土星行運與 Rahu/Ketu 軸線分析。
+
+請根據「本命盤」與「十年流年資料」，寫一份繁體中文十年流年解讀。
+
+請直接開始解讀，不要寫：
+- 感謝提供資料
+- 以下是分析
+- 我會幫你分析
+- 如果你願意
+- 歡迎再詢問
+- 問句結尾
+
+風格要求：
+- 像真正 App 裡的高階長期人生分析
+- 成熟、清楚、實用
+- 不要太玄
+- 不要客服感
+- 不要 ChatGPT 感
+- 不要使用 emoji
+- 不要恐嚇式斷言
+
+請包含以下段落：
+
+1. 十年整體人生主題
+   - 根據本命盤、大運與十年行運，分析接下來十年的主要人生方向。
+
+2. 前三年
+   - 分析起始階段的重要課題、壓力與機會。
+
+3. 中期轉折
+   - 分析中段幾年的重要轉變、成長與人生變化。
+
+4. 後期成熟期
+   - 分析後段幾年的穩定、收穫與人生定位。
+
+5. 事業與財富
+   - 分析十年內事業發展、財務累積與適合的方向。
+
+6. 感情與關係
+   - 分析長期感情、人際與合作關係的變化。
+
+7. 情緒與內在成長
+   - 分析十年間的心理成熟、壓力來源與內在轉變。
+
+8. 關鍵年份提醒
+   - 請列出重要年份。
+   - 例如：
+     - 2027：……
+     - 2030：……
+     - 2033：……
+
+9. Jupiter / Saturn / Rahu / Ketu 重點
+   - 木星代表成長與機會
+   - 土星代表責任與成熟
+   - Rahu/Ketu 代表人生轉向與執著
+   - 請結合十年資料分析。
+
+10. 十年建議
+   - 給出成熟、實際、可執行的人生建議。
+   - 不要空泛。
+
+字數約 1400～2200 字。
+最後直接結束，不要問問題。
+
+本命盤 JSON：
+${JSON.stringify(natal, null, 2)}
+
+十年流年 JSON：
+${JSON.stringify(tenYearForecast, null, 2)}
+`;
+
+    const gptRes = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
+    });
+
+    const reading =
+      gptRes.output_text ||
+      gptRes.output?.[0]?.content?.[0]?.text ||
+      "沒有取得十年流年解讀內容";
+
+    return res.json({
+      ok: true,
+      reading,
+    });
+  } catch (error) {
+    console.error("jyoti ten-year-reading error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "ten-year-reading failed",
+    });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`jyoti_api running on port ${PORT}`);
 });
