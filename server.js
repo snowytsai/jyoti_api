@@ -576,7 +576,8 @@ ${JSON.stringify(chartB, null, 2)}
 
 app.post("/api/jyoti/transit-reading", checkApiKey, async (req, res) => {
   try {
-    const { natal, transit, oracleCard } = req.body;
+    const { natal, transit } = req.body;
+    const oracleCard = transit?.oracleCard || null;
 
     if (!natal || !transit) {
       return res.status(400).json({
