@@ -1082,7 +1082,7 @@ ${JSON.stringify(tenYearForecast, null, 2)}
 // 本週運勢 AI 解讀
 app.post("/api/jyoti/weekly-reading", checkApiKey, async (req, res) => {
   try {
-    const { natal, weeklyFortune } = req.body;
+    const { natal, weeklyFortune, oracleCard } = req.body;
 
     if (!natal || !weeklyFortune) {
       return res.status(400).json({
@@ -1093,39 +1093,75 @@ app.post("/api/jyoti/weekly-reading", checkApiKey, async (req, res) => {
 
     const prompt = `
 你是一位專業、溫柔但直接的印度占星師。
-請根據以下本命盤與本週 7 天行運資料，寫一份繁體中文本週運勢解讀。
 
-請直接開始解讀，不要寫感謝提供資料、以下是分析、歡迎再詢問，也不要用問句結尾。
+請根據以下本命盤、本週 7 天行運資料與抽到的神諭卡，
+寫一份繁體中文本週運勢解讀。
+
+請直接開始解讀，不要寫：
+- 感謝提供資料
+- 以下是分析
+- 我會幫你分析
+- 如果你願意
+- 歡迎再詢問
+- 問句結尾
+
+風格要求：
+- 像真正的占星師
+- 不要客服感
+- 不要 ChatGPT 感
+- 不要過度安撫
+- 不要太玄
+- 不要使用 emoji
 
 請包含：
+
 1. 本週整體主題
 2. 工作與金錢
 3. 感情與人際
 4. 情緒與內在狀態
 5. 本週每日提醒
-6. 本週建議
+6. 本週主要影響行星
+7. 本週建議
 
-請同時分析：
+請分析：
+
+【短期行星】
 - 太陽：事業曝光、自我定位
 - 月亮：情緒、安全感
 - 水星：溝通、人際、思考
 - 金星：感情、吸引力、人緣
 - 火星：壓力、衝突、行動力
 
-並保留：
+【長期行星】
 - 木星：成長與機會
 - 土星：責任與壓力
-- Rahu/Ketu：執著、轉折與放下
+- Rahu：執著、突破、放大
+- Ketu：放下、疏離、靈性
 
-請指出本週主要影響行星與事件傾向。
-語氣要像 App 裡的專屬占星分析，不要太玄，不要客服感，不要使用 emoji。
-內容約 800～1200 字。
+請同時融合神諭卡能量：
+
+- 為何這週會抽到這張牌
+- 它對應的內在課題
+- 光明面與陰影面
+- 它如何與本週行星互相呼應
+- 本週適合的行動方向
+
+不要單獨逐條解牌，
+而是融合成真正的個人化占星神諭分析。
+
+語氣像高級靈性 App。
+不要太技術化。
+
+內容約 900～1300 字。
 
 本命盤 JSON：
 ${JSON.stringify(natal, null, 2)}
 
 本週行運 JSON：
 ${JSON.stringify(weeklyFortune, null, 2)}
+
+本週抽到的神諭卡：
+${JSON.stringify(oracleCard, null, 2)}
 `;
 
     const gptRes = await openai.responses.create({
