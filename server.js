@@ -1192,7 +1192,7 @@ ${JSON.stringify(oracleCard, null, 2)}
 // 本月運勢 AI 解讀
 app.post("/api/jyoti/monthly-reading", checkApiKey, async (req, res) => {
   try {
-    const { natal, monthlyFortune } = req.body;
+    const { natal, monthlyFortune, oracleCard } = req.body;
 
     if (!natal || !monthlyFortune) {
       return res.status(400).json({
@@ -1237,6 +1237,9 @@ ${JSON.stringify(natal, null, 2)}
 
 本月行運 JSON：
 ${JSON.stringify(monthlyFortune, null, 2)}
+
+本月抽到的神諭卡：
+${JSON.stringify(oracleCard, null, 2)}
 `;
 
     const gptRes = await openai.responses.create({
