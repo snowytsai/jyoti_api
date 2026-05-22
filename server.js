@@ -739,7 +739,7 @@ ${JSON.stringify(oracleCard, null, 2)}
 // 年度流年 AI 解讀
 app.post("/api/jyoti/yearly-reading", checkApiKey, async (req, res) => {
   try {
-    const { natal, yearlyForecast } = req.body;
+    const { natal, monthlyFortune, oracleCard } = req.body;
 
     if (!natal || !yearlyForecast) {
       return res.status(400).json({
@@ -817,6 +817,9 @@ ${JSON.stringify(natal, null, 2)}
 
 年度流年 JSON：
 ${JSON.stringify(yearlyForecast, null, 2)}
+
+本月抽到的神諭卡：
+${JSON.stringify(oracleCard, null, 2)}
 `;
 
     const gptRes = await openai.responses.create({
