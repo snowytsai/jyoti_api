@@ -576,7 +576,7 @@ ${JSON.stringify(chartB, null, 2)}
 
 app.post("/api/jyoti/transit-reading", checkApiKey, async (req, res) => {
   try {
-    const { natal, transit } = req.body;
+    const { natal, transit, oracleCard } = req.body;
 
     if (!natal || !transit) {
       return res.status(400).json({
@@ -695,6 +695,21 @@ ${JSON.stringify(natal, null, 2)}
 
 今日運勢資料：
 ${JSON.stringify(transit, null, 2)}
+
+今日抽到的神諭卡：
+${JSON.stringify(oracleCard, null, 2)}
+
+請把神諭卡一起融合進今日解讀。
+
+請說明：
+- 這張牌目前對應的人生課題
+- 光明面或陰影面訊息
+- 為何會抽到這張牌
+- 它如何與今日行星能量互相呼應
+- 今日適合的內在狀態與行動方向
+
+不要單純逐條解釋牌卡，
+而是融合成真正的個人化神諭流年分析。
 `;
 
     const completion = await openai.responses.create({
