@@ -577,7 +577,11 @@ ${JSON.stringify(chartB, null, 2)}
 app.post("/api/jyoti/transit-reading", checkApiKey, async (req, res) => {
   try {
     const { natal, transit } = req.body;
-    const oracleCard = transit?.oracleCard || null;
+
+    const oracleCard =
+      transit?.oracleCard ||
+      transit?.oracle_card ||
+      null;
 
     if (!natal || !transit) {
       return res.status(400).json({
@@ -739,7 +743,13 @@ ${JSON.stringify(oracleCard, null, 2)}
 // 年度流年 AI 解讀
 app.post("/api/jyoti/yearly-reading", checkApiKey, async (req, res) => {
   try {
-    const { natal, monthlyFortune, oracleCard } = req.body;
+    const { natal, yearlyForecast, oracleCard } = req.body;
+
+    const finalOracleCard =
+      oracleCard ||
+      yearlyForecast?.oracleCard ||
+      yearlyForecast?.oracle_card ||
+      null;
 
     if (!natal || !yearlyForecast) {
       return res.status(400).json({
@@ -819,7 +829,7 @@ ${JSON.stringify(natal, null, 2)}
 ${JSON.stringify(yearlyForecast, null, 2)}
 
 本月抽到的神諭卡：
-${JSON.stringify(oracleCard, null, 2)}
+${JSON.stringify(finalOracleCard, null, 2)}
 `;
 
     const gptRes = await openai.responses.create({
@@ -1087,6 +1097,12 @@ app.post("/api/jyoti/weekly-reading", checkApiKey, async (req, res) => {
   try {
     const { natal, weeklyFortune, oracleCard } = req.body;
 
+    const finalOracleCard =
+      oracleCard ||
+      weeklyFortune?.oracleCard ||
+      weeklyFortune?.oracle_card ||
+      null;
+
     if (!natal || !weeklyFortune) {
       return res.status(400).json({
         ok: false,
@@ -1164,7 +1180,7 @@ ${JSON.stringify(natal, null, 2)}
 ${JSON.stringify(weeklyFortune, null, 2)}
 
 本週抽到的神諭卡：
-${JSON.stringify(oracleCard, null, 2)}
+${JSON.stringify(finalOracleCard, null, 2)}
 `;
 
     const gptRes = await openai.responses.create({
@@ -1196,6 +1212,12 @@ ${JSON.stringify(oracleCard, null, 2)}
 app.post("/api/jyoti/monthly-reading", checkApiKey, async (req, res) => {
   try {
     const { natal, monthlyFortune, oracleCard } = req.body;
+
+    const finalOracleCard =
+      oracleCard ||
+      monthlyFortune?.oracleCard ||
+      monthlyFortune?.oracle_card ||
+      null;
 
     if (!natal || !monthlyFortune) {
       return res.status(400).json({
@@ -1242,7 +1264,7 @@ ${JSON.stringify(natal, null, 2)}
 ${JSON.stringify(monthlyFortune, null, 2)}
 
 本月抽到的神諭卡：
-${JSON.stringify(oracleCard, null, 2)}
+${JSON.stringify(finalOracleCard, null, 2)}
 `;
 
     const gptRes = await openai.responses.create({
