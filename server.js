@@ -1291,6 +1291,104 @@ ${JSON.stringify(finalOracleCard, null, 2)}
   }
 });
 
+// 集體星象 AI 解讀
+app.post("/api/jyoti/collective-reading", checkApiKey, async (req, res) => {
+  try {
+    const {
+      transit,
+      type = "collective",
+      oracleCard,
+    } = req.body;
+
+    if (!transit) {
+      return res.status(400).json({
+        ok: false,
+        error: "缺少 transit 資料",
+      });
+    }
+
+    const prompt = `
+你是一位專業的印度占星師（Jyotish）。
+
+目前不是個人命盤模式，
+而是「集體星象模式」。
+
+請根據目前的大環境行星能量，
+分析近期的集體趨勢與能量流動。
+
+請不要使用：
+- 你的命盤
+- 你的宮位
+- 你最近
+- 個人化語氣
+
+請改用：
+- 大環境
+- 集體能量
+- 最近整體氛圍
+- 社會情緒
+- 人際與感情氛圍
+- 財務與工作趨勢
+- 內在能量流動
+
+請重點分析：
+
+1. 太陽
+2. 月亮
+3. 水星
+4. 金星
+5. 火星
+6. 木星
+7. 土星
+8. Rahu
+9. Ketu
+
+請包含：
+
+1. 集體星象主題
+2. 情緒與內在能量
+3. 工作與財務氛圍
+4. 感情與人際能量
+5. 靈性與內在課題
+6. 近期建議
+
+不要太技術化，
+要像高級靈性 App。
+
+如果有神諭卡，
+請一起融合分析。
+
+集體星象資料：
+${JSON.stringify(transit, null, 2)}
+
+神諭卡：
+${JSON.stringify(oracleCard || null, null, 2)}
+`;
+
+    const completion = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: prompt,
+    });
+
+    const reading =
+      completion.output_text ||
+      completion.output?.[0]?.content?.[0]?.text ||
+      "沒有取得集體星象解讀內容";
+
+    res.json({
+      ok: true,
+      reading,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      ok: false,
+      error: "collective-reading failed",
+    });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`jyoti_api running on port ${PORT}`);
