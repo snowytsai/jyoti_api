@@ -582,6 +582,17 @@ app.post("/api/jyoti/collective-reading", checkApiKey, async (req, res) => {
       type = "collective",
       oracleCard,
     } = req.body;
+    const typeLabelMap = {
+      daily: "今日集體星象",
+      weekly: "本週集體星象",
+      monthly: "本月集體星象",
+      yearly: "今年集體流年",
+      three_year: "三年集體流年",
+      ten_year: "十年集體流年",
+      collective: "集體星象",
+    };
+
+    const typeLabel = typeLabelMap[type] || "集體星象";
 
     if (!transit) {
       return res.status(400).json({
@@ -595,6 +606,8 @@ app.post("/api/jyoti/collective-reading", checkApiKey, async (req, res) => {
 
 目前不是個人命盤模式，
 而是「集體星象模式」。
+
+這次解讀類型是：${typeLabel}
 
 請根據目前的大環境行星能量，
 分析近期的集體趨勢與能量流動。
@@ -633,7 +646,7 @@ app.post("/api/jyoti/collective-reading", checkApiKey, async (req, res) => {
 3. 工作與財務氛圍
 4. 感情與人際能量
 5. 靈性與內在課題
-6. 近期建議
+6. ${typeLabel}建議
 
 不要太技術化，
 要像高級靈性 App。
