@@ -226,6 +226,7 @@ app.post("/api/jyoti/reading", checkApiKey, async (req, res) => {
 - 不要過度安撫
 - 不要心理諮商式開場
 - 不要解釋 AI 自己
+- 不要讓使用者感覺看到 prompt。
 
 請直接切入命盤重點。
 
@@ -345,6 +346,7 @@ app.post("/api/jyoti/synastry", checkApiKey, async (req, res) => {
 - 不要心理諮商式開場
 - 不要解釋 AI 自己
 - 不要使用 emoji
+- 不要讓使用者感覺看到 prompt。
 
 請直接切入兩人的關係重點。
 
@@ -491,6 +493,7 @@ app.post("/api/jyoti/nakshatra-match", checkApiKey, async (req, res) => {
 - 不要心理諮商式開場
 - 不要解釋 AI 自己
 - 不要使用 emoji
+- 不要讓使用者感覺看到 prompt。
 
 這是一個「月亮星宿 Nakshatra 伴侶配對」功能。
 請以兩人的 Moon Nakshatra 為核心，分析情緒節奏、安全感、吸引力、長期相處與關係課題。
@@ -836,7 +839,7 @@ app.post("/api/jyoti/transit-reading", checkApiKey, async (req, res) => {
 - 哪些地方需要注意
 - 可以怎麼調整
 
-請不要寫得像技術報告，
+請不要寫得像技術報告，不要讓使用者感覺看到 prompt。
 而是像高級占星 App 的個人化每日運勢。
 
 內容約 700 字內。
@@ -925,6 +928,7 @@ app.post("/api/jyoti/yearly-reading", checkApiKey, async (req, res) => {
 - 不要 ChatGPT 感
 - 不要使用 emoji
 - 不要恐嚇式斷言
+- 不要讓使用者感覺看到 prompt
 
 請包含以下段落：
 
@@ -1036,6 +1040,7 @@ app.post("/api/jyoti/three-year-reading", checkApiKey, async (req, res) => {
 - 不要 ChatGPT 感
 - 不要使用 emoji
 - 不要恐嚇式斷言
+- 不要讓使用者感覺看到 prompt
 
 請包含以下段落：
 
@@ -1154,6 +1159,7 @@ app.post("/api/jyoti/ten-year-reading", checkApiKey, async (req, res) => {
 - 不要 ChatGPT 感
 - 不要使用 emoji
 - 不要恐嚇式斷言
+- 不要讓使用者感覺看到 prompt
 
 請包含以下段落：
 
@@ -1277,6 +1283,7 @@ app.post("/api/jyoti/weekly-reading", checkApiKey, async (req, res) => {
 - 不要過度安撫
 - 不要太玄
 - 不要使用 emoji
+- 不要讓使用者感覺看到 prompt
 
 請包含：
 
