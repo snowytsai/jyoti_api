@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 const PORT = process.env.PORT || 3000;
 
@@ -170,6 +170,22 @@ function calculateBasicNakshatraScore(nakA, nakB) {
   }
 
   return { score, level: "需要磨合" };
+}
+
+function slimAstroData(data) {
+  return JSON.parse(
+    JSON.stringify(data, (key, value) => {
+      if (
+        key === "raw_chart" ||
+        key === "rawChart" ||
+        key === "raw" ||
+        key === "chart"
+      ) {
+        return undefined;
+      }
+      return value;
+    })
+  );
 }
 
 // 健康檢查
@@ -655,7 +671,7 @@ app.post("/api/jyoti/collective-reading", checkApiKey, async (req, res) => {
 請一起融合分析。
 
 集體星象資料：
-${JSON.stringify(transit, null, 2)}
+${JSON.stringify(slimAstroData(transit), null, 2)}
 
 神諭卡：
 ${JSON.stringify(oracleCard || null, null, 2)}
@@ -938,7 +954,7 @@ app.post("/api/jyoti/yearly-reading", checkApiKey, async (req, res) => {
 ${JSON.stringify(natal, null, 2)}
 
 年度流年 JSON：
-${JSON.stringify(yearlyForecast, null, 2)}
+${JSON.stringify(slimAstroData(yearlyForecast), null, 2)}
 
 本月抽到的神諭卡：
 ${JSON.stringify(finalOracleCard, null, 2)}
@@ -1059,7 +1075,7 @@ app.post("/api/jyoti/three-year-reading", checkApiKey, async (req, res) => {
 ${JSON.stringify(natal, null, 2)}
 
 三年流年 JSON：
-${JSON.stringify(threeYearForecast, null, 2)}
+${JSON.stringify(slimAstroData(threeYearForecast), null, 2)}
 `;
 
     const gptRes = await openai.responses.create({
@@ -1177,7 +1193,7 @@ app.post("/api/jyoti/ten-year-reading", checkApiKey, async (req, res) => {
 ${JSON.stringify(natal, null, 2)}
 
 十年流年 JSON：
-${JSON.stringify(tenYearForecast, null, 2)}
+${JSON.stringify(slimAstroData(tenYearForecast), null, 2)}
 `;
 
     const gptRes = await openai.responses.create({
@@ -1289,7 +1305,7 @@ app.post("/api/jyoti/weekly-reading", checkApiKey, async (req, res) => {
 ${JSON.stringify(natal, null, 2)}
 
 本週行運 JSON：
-${JSON.stringify(weeklyFortune, null, 2)}
+${JSON.stringify(slimAstroData(weeklyFortune), null, 2)}
 
 本週抽到的神諭卡：
 ${JSON.stringify(finalOracleCard, null, 2)}
@@ -1373,7 +1389,7 @@ app.post("/api/jyoti/monthly-reading", checkApiKey, async (req, res) => {
 ${JSON.stringify(natal, null, 2)}
 
 本月行運 JSON：
-${JSON.stringify(monthlyFortune, null, 2)}
+${JSON.stringify(slimAstroData(monthlyFortune), null, 2)}
 
 本月抽到的神諭卡：
 ${JSON.stringify(finalOracleCard, null, 2)}
