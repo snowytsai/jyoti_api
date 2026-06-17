@@ -944,12 +944,15 @@ app.post("/api/jyoti/yearly-reading", checkApiKey, async (req, res) => {
 4. 情緒與內在狀態
    - 分析今年壓力、焦慮、內在轉變、安全感與精神狀態。
 
-5. 重要月份提醒
-   - 請依照 1～12 月資料，挑出比較明顯的月份。
-   - 請用條列方式，例如：
-     - 3月：……
+5. 年度重要時間提醒
+   - 請依照 1～12 月資料，挑出 3～6 個最重要月份或月份區間。
+   - 請根據 important_personal_astrology、transit_house_entries、transit_natal_aspects 判斷。
+   - 優先挑選土星、木星、Rahu、Ketu 進宮或強相位月份。
+   - 格式：
+     - 1～2月：……
      - 6月：……
-     - 10月：……
+     - 10～11月：……
+   - 不要自行編造月份。
 
 6. 太陽 / 月亮 / 水星 / 金星 / 火星 重點
    - 太陽：今年的事業曝光、自我定位
@@ -1291,7 +1294,13 @@ app.post("/api/jyoti/weekly-reading", checkApiKey, async (req, res) => {
 2. 工作與金錢
 3. 感情與人際
 4. 情緒與內在狀態
-5. 本週每日提醒
+5. 本週關鍵日提醒
+   - 請從 7 天資料中挑出 1～3 個最重要日期。
+   - 請根據 important_personal_astrology、transit_house_entries、transit_natal_aspects 判斷。
+   - 格式：
+     - 6/18：……
+     - 6/21：……
+   - 不要自行編造日期。
 6. 本週主要影響行星
 7. 本週建議
 
@@ -1390,7 +1399,13 @@ app.post("/api/jyoti/monthly-reading", checkApiKey, async (req, res) => {
 2. 工作與金錢
 3. 感情與人際
 4. 情緒與內在狀態
-5. 每週重點提醒
+5. 本月重要週期提醒
+   - 請從每週資料中挑出 2～4 個最重要週期。
+   - 請根據 important_personal_astrology、transit_house_entries、transit_natal_aspects 判斷。
+   - 格式：
+     - 第1週：……
+     - 第3週：……
+   - 不要自行編造週次。
 6. 本月建議
 
 請同時分析：
